@@ -235,11 +235,35 @@ function setFontFamily(font) {
 
     currentFont = font;
 
-    // Selecciona los 3 editores por clase
-    const editors = document.querySelectorAll('.editor-section');
+    document.querySelectorAll('.editor-section').forEach(editor => {
 
-    editors.forEach(editor => {
+        // 1 Eliminar etiquetas <font>
+        editor.querySelectorAll('font').forEach(node => {
+            const parent = node.parentNode;
+            while (node.firstChild) {
+                parent.insertBefore(node.firstChild, node);
+            }
+            parent.removeChild(node);
+        });
+
+        // 2 Limpiar font-family inline en TODOS los nodos internos
+        editor.querySelectorAll('*').forEach(node => {
+            if (node.style && node.style.fontFamily) {
+                node.style.fontFamily = '';
+            }
+        });
+
+        // 3 Aplicar fuente global al editor
         editor.style.fontFamily = font;
+
+        // 4 Forzar herencia explícita en TODOS los elementos estructurales
+        editor.querySelectorAll(
+            'h1,h2,h3,h4,h5,h6,p,div,span,li,ul,ol,' +
+            'table,thead,tbody,tr,td,th'
+        ).forEach(node => {
+            node.style.fontFamily = 'inherit';
+        });
+
     });
 }
 
@@ -1084,6 +1108,7 @@ function insertTable() {
     // Crear tabla
     const table = document.createElement("table");
     table.className = "editor-table";
+    table.style.fontFamily = currentFont;
 
     for (let r = 0; r < rows; r++) {
         const tr = document.createElement("tr");
@@ -1092,6 +1117,7 @@ function insertTable() {
             const td = document.createElement("td");
             td.textContent = "Celda";
             td.contentEditable = "true";
+            td.style.fontFamily = currentFont;
             tr.appendChild(td);
         }
 

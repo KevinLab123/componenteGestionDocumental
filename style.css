@@ -112,7 +112,15 @@ li {
     border: 1px solid #ccc;
     padding: 8px;
     text-align: center;
+    page-break-inside: avoid;
+    break-inside: avoid;
 }
+
+.editor-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
 .table-control {
     color: #146c43;
     border-radius: 4px;
@@ -164,6 +172,8 @@ li {
     border-bottom: 1px solid #ccc;
     padding: 40px 0 10px 0;
     width: 100%; /* ocupa todo el ancho disponible */
+    page-break-inside: avoid;
+    break-inside: avoid;
 }
 /* Controles superiores e inferiores siempre centrados */
 .table-controls-top,
@@ -236,7 +246,10 @@ li {
 }
 
 
-
+p, h1, h2, h3, h4, h5, h6 {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
 
 
 
