@@ -12,17 +12,10 @@ function formatDoc(cmd, value=null) {
     }
 }
 
-
 let currentFont = 'Arial';
 const filename = document.getElementById('filename');
 let savedRange = null;
 let buttonModal = null;
-document.addEventListener("DOMContentLoaded", function () {
-    const modalEl = document.getElementById('buttonModal');
-    if (modalEl) {
-        buttonModal = new bootstrap.Modal(modalEl);
-    }
-});
 
 function bold() {
     const sel = window.getSelection();
@@ -310,10 +303,6 @@ function addLink() {
     saveState();
 }
 
-document.querySelectorAll(".editor-section").forEach(editor => {
-    editor.addEventListener("input", updatePreview);
-});
-
 function buildCleanSection(editorId) {
 
     const original = document.getElementById(editorId);
@@ -397,6 +386,7 @@ function updatePreview() {
 const headerEditor = document.getElementById('header-editor');
 const bodyEditor = document.getElementById('body-editor');
 const footerEditor = document.getElementById('footer-editor');
+
 let histories = {
     header: {
         history: [],
@@ -411,6 +401,7 @@ let histories = {
         currentIndex: -1
     }
 };
+
 let activeEditor = null;
 let activeKey = null;
 let isResizing = false;
@@ -422,42 +413,8 @@ function setActiveEditor(editor, key) {
     activeEditor = editor;
     activeKey = key;
 }
-
-headerEditor.addEventListener('focus', () => {
-    setActiveEditor(headerEditor, 'header');
-});
-
-headerEditor.addEventListener('input', () => {
-    commitChange();
-});
-
-bodyEditor.addEventListener('focus', () => {
-    setActiveEditor(bodyEditor, 'body');
-});
-
-footerEditor.addEventListener('focus', () => {
-    setActiveEditor(footerEditor, 'footer');
-});
-
-
 // Actualizar elementos interactivos cuando haya cambios en el contenido
 const editors = document.querySelectorAll('.editor-section');
-
-editors.forEach(editor => {
-    editor.addEventListener('input', updateInteractiveListeners);
-});
-
-// Esperar a que el DOM esté completamente cargado
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.show-code').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const card = button.closest('.card');
-            const editor = card.querySelector('.editor-section');
-            toggleCodeMode(editor, button);
-        });
-    });
-});
 
 function toggleCodeMode(editor, button) {
 
@@ -494,328 +451,12 @@ function toggleCodeMode(editor, button) {
         updateInteractiveListeners();
     }
 }
-
-
-
-// --- CLICK: tablas + imágenes ---
-document.addEventListener("click", function (e) {
-    const editor = e.target.closest('.editor-section');
-    if(!editor) return;
-    const target = e.target;
-
-    // --- TABLAS ---
-    const tableWrapper = target.closest(".table-wrapper");
-    if (tableWrapper) {
-        const table = tableWrapper.querySelector("table");
-
-        function getCurrentCell() {
-            const selection = window.getSelection();
-            if (!selection.rangeCount) return null;
-
-            let node = selection.anchorNode;
-            if (node.nodeType === 3) node = node.parentNode;
-
-            while (node && node !== table) {
-                if (node.tagName === "TD") return node;
-                node = node.parentNode;
-            }
-            return null;
-        }
-
-     if (target.classList.contains("btn-add-row")) {
-
-    const matrix = buildTableMatrix(table);
-
-    if (!matrix.length) return;
-
-    const totalCols = matrix[0].length;
-    const lastRowIndex = matrix.length - 1;
-
-    const newRow = table.insertRow();
-
-    for (let c = 0; c < totalCols; c++) {
-
-        const cellAbove = matrix[lastRowIndex][c];
-
-        if (!cellAbove) continue;
-
-        const rowspan = parseInt(cellAbove.getAttribute("rowspan")) || 1;
-
-        // Si la celda viene extendida hacia abajo
-        if (cellAbove.parentElement.rowIndex !== lastRowIndex) {
-
-            cellAbove.setAttribute("rowspan", rowspan + 1);
-
-        } else {
-
-            const td = document.createElement("td");
-            td.contentEditable = "true";
-            td.textContent = "Celda";
-            td.style.fontFamily = table.style.fontFamily;
-
-            td.setAttribute("colspan", "1");
-            td.setAttribute("rowspan", "1");
-
-            newRow.appendChild(td);
-        }
-    }
-
-    saveState();
-}
-
-if (target.classList.contains("btn-add-col")) {
-
-    const matrix = buildTableMatrix(table);
-
-    if (!matrix.length || !matrix[0].length) return;
-
-    const totalRows = matrix.length;
-    const insertIndex = matrix[0].length; // insertar al final
-
-    for (let r = 0; r < totalRows; r++) {
-
-        const row = table.rows[r];
-
-        // Última celda visible en esa fila
-        const lastCell = matrix[r][insertIndex - 1];
-
-        //  Si por alguna razón no existe, crear celda normal
-        if (!lastCell) {
-
-            const td = document.createElement("td");
-            td.contentEditable = "true";
-            td.textContent = "Celda";
-            td.setAttribute("colspan", "1");
-            td.setAttribute("rowspan", "1");
-
-            row.appendChild(td);
-            continue;
-        }
-
-        const colspan = parseInt(lastCell.getAttribute("colspan")) || 1;
-
-        // Verificar si la celda realmente pertenece a esta fila
-        if (lastCell.parentElement === row) {
-
-            // Si ocupa múltiples columnas → extender
-            if (colspan > 1) {
-                lastCell.setAttribute("colspan", colspan + 1);
-            } else {
-
-                const td = document.createElement("td");
-                td.contentEditable = "true";
-                td.textContent = "Celda";
-                td.setAttribute("colspan", "1");
-                td.setAttribute("rowspan", "1");
-
-                row.appendChild(td);
-            }
-
-        } else {
-
-            // Si la celda viene de arriba (rowspan) → extender horizontalmente
-            lastCell.setAttribute("colspan", colspan + 1);
-        }
-    }
-
-    saveState();
-}
-
-        if (target.classList.contains("btn-delete-row")) {
-            const cell = getCurrentCell();
-            if (!cell || table.rows.length <= 1) return;
-            cell.parentNode.remove();
-            saveState();
-        }
-
-      if (target.classList.contains("btn-delete-col")) {
-
-    const cell = getCurrentCell();
-    if (!cell) return;
-
-    const matrix = buildTableMatrix(table);
-    if (!matrix.length) return;
-
-    const rowIndex = cell.parentElement.rowIndex;
-    const colIndex = matrix[rowIndex].indexOf(cell);
-
-    if (colIndex === -1) return;
-
-    const totalRows = matrix.length;
-    const totalCols = matrix[0].length;
-
-    // No permitir eliminar si es la última columna real
-    if (totalCols <= 1) return;
-
-    for (let r = 0; r < totalRows; r++) {
-
-        const targetCell = matrix[r][colIndex];
-
-        if (!targetCell) continue;
-
-        const colspan = parseInt(targetCell.getAttribute("colspan")) || 1;
-
-        // Si la celda ocupa varias columnas → reducir colspan
-        if (colspan > 1) {
-
-            targetCell.setAttribute("colspan", colspan - 1);
-
-        } else {
-
-            // Solo eliminar si pertenece realmente a esa fila
-            if (targetCell.parentElement.rowIndex === r) {
-                targetCell.remove();
-            }
-        }
-    }
-
-    saveState();
-}
-
-        if (target.classList.contains("btn-delete-table")) {
-            tableWrapper.remove();
-            saveState();
-        }
-
-        return; // si fue tabla, no seguimos al código de imagen
-    }
-
-    // --- IMÁGENES ---
-    const imageWrapper = target.closest(".image-wrapper");
-    if (imageWrapper) {
-
-        // Alineación
-        if (target.classList.contains("btn-img-left")) {
-            imageWrapper.classList.remove("align-center", "align-right");
-            imageWrapper.classList.add("align-left");
-            saveState();
-        }
-
-        if (target.classList.contains("btn-img-center")) {
-            imageWrapper.classList.remove("align-left", "align-right");
-            imageWrapper.classList.add("align-center");
-            saveState();
-        }
-
-        if (target.classList.contains("btn-img-right")) {
-            imageWrapper.classList.remove("align-left", "align-center");
-            imageWrapper.classList.add("align-right");
-            saveState();
-        }
-
-        // Eliminar imagen
-     if (target.classList.contains("image-control-delete")) {
-
-    const wrapper = imageWrapper;
-    if (!wrapper) return;
-
-    const prev = wrapper.previousElementSibling;
-    const next = wrapper.nextElementSibling;
-
-    //  Eliminar párrafo vacío anterior
-    if (prev && prev.tagName === "P" && prev.innerHTML.trim() === "<br>") {
-        prev.remove();
-    }
-
-    //  Eliminar clear div y posible párrafo vacío debajo
-    if (next && next.classList.contains("image-clear-fix")) {
-
-        const nextAfterClear = next.nextElementSibling;
-
-        next.remove(); // elimina clear-fix
-
-        if (nextAfterClear && 
-            nextAfterClear.tagName === "P" && 
-            nextAfterClear.innerHTML.trim() === "<br>") {
-            nextAfterClear.remove();
-        }
-    }
-
-    //  Eliminar wrapper de imagen
-    wrapper.remove();
-
-    saveState();
-}
-
-        return;
-    }
-
-});
-
-document.addEventListener("mousedown", function (e) {
-
-    if (!e.target.classList.contains("resize-handle")) return;
-
-    const editor = e.target.closest('.editor-section');
-    if (!editor) return;
-
-    e.preventDefault();
-
-    currentHandle = e.target;
-    currentContainer = currentHandle.closest(".img-container");
-    currentImage = currentContainer.querySelector("img");
-
-    if (!currentContainer || !currentImage) return;
-
-    isResizing = true;
-});
-
-document.addEventListener("mousemove", function (e) {
-
-    if (!isResizing || !currentHandle) return;
-
-    const rect = currentContainer.getBoundingClientRect();
-    let newWidth;
-
-    if (currentHandle.className.includes("right")) {
-        newWidth = e.clientX - rect.left;
-    } else {
-        newWidth = rect.right - e.clientX;
-    }
-
-    const minWidth = 100;
-    const maxWidth = 600;
-
-    newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
-
-    const aspectRatio = currentImage.naturalWidth / currentImage.naturalHeight;
-    const newHeight = newWidth / aspectRatio;
-
-    currentImage.style.width = newWidth + "px";
-    currentImage.style.height = newHeight + "px";
-
-    currentContainer.style.width = currentImage.style.width;
-    currentContainer.style.height = currentImage.style.height;
-});
-
-document.addEventListener("mouseup", function () {
-
-    if (!isResizing) return;
-
-    isResizing = false;
-    currentHandle = null;
-    currentContainer = null;
-    currentImage = null;
-
-    saveState();
-});
-
 function commitChange() {
     if (!activeEditor) return;
 
     activeEditor.focus();   // asegurar foco
     saveState();            // guardar estado
 }
-
-headerEditor.addEventListener('input', (e) => {
-
-    // Solo reaccionar si el cambio ocurre dentro de un contenteditable
-    if (e.target.closest('[contenteditable="true"]')) {
-        setActiveEditor(headerEditor, 'header');
-        saveState();
-    }
-
-});
 
 function saveState() {
 
@@ -867,7 +508,6 @@ function saveState() {
     editorHistory.currentIndex = editorHistory.history.length - 1;
 }
 
-
 function undo() {
 
     if (!activeEditor) return;
@@ -891,11 +531,6 @@ function redo() {
         activeEditor.innerHTML = editorHistory.history[editorHistory.currentIndex];
     }
 }
-// Listeners de input
-headerEditor.addEventListener("input", saveState);
-bodyEditor.addEventListener("input", saveState);
-footerEditor.addEventListener("input", saveState);
-
 // Inicializar historial
 function initializeHistories() {
     Object.keys(histories).forEach(key => {
@@ -909,7 +544,6 @@ function initializeHistories() {
         histories[key].currentIndex = 0;
     });
 }
-
 initializeHistories();
 
 // Función para actualizar listeners en elementos interactivos (enlaces y botones de plantilla)
@@ -949,7 +583,6 @@ function updateInteractiveListeners() {
         });
     });
 }
-
 
 function saveAsPDF(action) {
 
@@ -1279,14 +912,6 @@ function buildTableMatrix(table) {
     return matrix;
 }
 
-document.addEventListener("click", function (e) {
-
-    if (e.target.classList.contains("btn-merge-right")) {
-        mergeRight();
-    }
-
-});
-
 function addColumn(table) {
 
     const matrix = buildTableMatrix(table);
@@ -1325,6 +950,10 @@ function addColumn(table) {
     saveState();
 }
 
+let resizing = false;
+let startX = 0;
+let startWidth = 0;
+let resizeCell = null;
 function insertTable() {
     if (!activeEditor){
         alert("Selecciona un editor antes de insertar la tabla.");
@@ -1442,7 +1071,6 @@ function insertTable() {
         saveState();
     }
 }
-
 
 function insertHeaderImage() {
 
@@ -1772,9 +1400,445 @@ function clearFormattingToParagraph() {
     setFontFamily(currentFont);
 }
 
+document.addEventListener("mousemove", function(e){
+
+    const cell = e.target.closest("td");
+
+    if(!cell) return;
+
+    const rect = cell.getBoundingClientRect();
+    const offset = 6;
+
+    if(rect.right - e.clientX < offset){
+        cell.style.cursor = "col-resize";
+    }else{
+        cell.style.cursor = "";
+    }
+
+});
+
+document.addEventListener("mousedown", function(e){
+
+    const cell = e.target.closest("td");
+    if(!cell) return;
+
+    const rect = cell.getBoundingClientRect();
+
+    if(rect.right - e.clientX < 6){
+
+        resizing = true;
+        resizeCell = cell;
+        startX = e.pageX;
+        startWidth = cell.offsetWidth;
+
+        e.preventDefault();
+    }
+
+});
+
+document.addEventListener("mousemove", function(e){
+
+    if(!resizing || !resizeCell) return;
+
+    const table = resizeCell.closest("table");
+    const columnIndex = resizeCell.cellIndex;
+
+    const newWidth = startWidth + (e.pageX - startX);
+
+    if(newWidth < 40) return;
+
+    table.querySelectorAll("tr").forEach(row =>{
+
+        const cell = row.children[columnIndex];
+        if(cell){
+            cell.style.width = newWidth + "px";
+        }
+
+    });
+
+});
+
+document.addEventListener("mouseup", function(){
+
+    if(resizing){
+        resizing = false;
+        resizeCell = null;
+
+        saveState(); // guardar cambio en historial
+    }
+
+});
 
 
 
+
+document.addEventListener("click", function (e) {
+
+    if (e.target.classList.contains("btn-merge-right")) {
+        mergeRight();
+    }
+
+});
+
+headerEditor.addEventListener('input', (e) => {
+
+    // Solo reaccionar si el cambio ocurre dentro de un contenteditable
+    if (e.target.closest('[contenteditable="true"]')) {
+        setActiveEditor(headerEditor, 'header');
+        saveState();
+    }
+
+});
+
+// --- CLICK: tablas + imágenes ---
+document.addEventListener("click", function (e) {
+    const editor = e.target.closest('.editor-section');
+    if(!editor) return;
+    const target = e.target;
+
+    // --- TABLAS ---
+    const tableWrapper = target.closest(".table-wrapper");
+    if (tableWrapper) {
+        const table = tableWrapper.querySelector("table");
+
+        function getCurrentCell() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return null;
+
+            let node = selection.anchorNode;
+            if (node.nodeType === 3) node = node.parentNode;
+
+            while (node && node !== table) {
+                if (node.tagName === "TD") return node;
+                node = node.parentNode;
+            }
+            return null;
+        }
+
+     if (target.classList.contains("btn-add-row")) {
+
+    const matrix = buildTableMatrix(table);
+
+    if (!matrix.length) return;
+
+    const totalCols = matrix[0].length;
+    const lastRowIndex = matrix.length - 1;
+
+    const newRow = table.insertRow();
+
+    for (let c = 0; c < totalCols; c++) {
+
+        const cellAbove = matrix[lastRowIndex][c];
+
+        if (!cellAbove) continue;
+
+        const rowspan = parseInt(cellAbove.getAttribute("rowspan")) || 1;
+
+        // Si la celda viene extendida hacia abajo
+        if (cellAbove.parentElement.rowIndex !== lastRowIndex) {
+
+            cellAbove.setAttribute("rowspan", rowspan + 1);
+
+        } else {
+
+            const td = document.createElement("td");
+            td.contentEditable = "true";
+            td.textContent = "Celda";
+            td.style.fontFamily = table.style.fontFamily;
+
+            td.setAttribute("colspan", "1");
+            td.setAttribute("rowspan", "1");
+
+            newRow.appendChild(td);
+        }
+    }
+
+    saveState();
+}
+
+if (target.classList.contains("btn-add-col")) {
+
+    const matrix = buildTableMatrix(table);
+
+    if (!matrix.length || !matrix[0].length) return;
+
+    const totalRows = matrix.length;
+    const insertIndex = matrix[0].length; // insertar al final
+
+    for (let r = 0; r < totalRows; r++) {
+
+        const row = table.rows[r];
+
+        // Última celda visible en esa fila
+        const lastCell = matrix[r][insertIndex - 1];
+
+        //  Si por alguna razón no existe, crear celda normal
+        if (!lastCell) {
+
+            const td = document.createElement("td");
+            td.contentEditable = "true";
+            td.textContent = "Celda";
+            td.setAttribute("colspan", "1");
+            td.setAttribute("rowspan", "1");
+
+            row.appendChild(td);
+            continue;
+        }
+
+        const colspan = parseInt(lastCell.getAttribute("colspan")) || 1;
+
+        // Verificar si la celda realmente pertenece a esta fila
+        if (lastCell.parentElement === row) {
+
+            // Si ocupa múltiples columnas → extender
+            if (colspan > 1) {
+                lastCell.setAttribute("colspan", colspan + 1);
+            } else {
+
+                const td = document.createElement("td");
+                td.contentEditable = "true";
+                td.textContent = "Celda";
+                td.setAttribute("colspan", "1");
+                td.setAttribute("rowspan", "1");
+
+                row.appendChild(td);
+            }
+
+        } else {
+
+            // Si la celda viene de arriba (rowspan) → extender horizontalmente
+            lastCell.setAttribute("colspan", colspan + 1);
+        }
+    }
+
+    saveState();
+}
+
+        if (target.classList.contains("btn-delete-row")) {
+            const cell = getCurrentCell();
+            if (!cell || table.rows.length <= 1) return;
+            cell.parentNode.remove();
+            saveState();
+        }
+
+      if (target.classList.contains("btn-delete-col")) {
+
+    const cell = getCurrentCell();
+    if (!cell) return;
+
+    const matrix = buildTableMatrix(table);
+    if (!matrix.length) return;
+
+    const rowIndex = cell.parentElement.rowIndex;
+    const colIndex = matrix[rowIndex].indexOf(cell);
+
+    if (colIndex === -1) return;
+
+    const totalRows = matrix.length;
+    const totalCols = matrix[0].length;
+
+    // No permitir eliminar si es la última columna real
+    if (totalCols <= 1) return;
+
+    for (let r = 0; r < totalRows; r++) {
+
+        const targetCell = matrix[r][colIndex];
+
+        if (!targetCell) continue;
+
+        const colspan = parseInt(targetCell.getAttribute("colspan")) || 1;
+
+        // Si la celda ocupa varias columnas → reducir colspan
+        if (colspan > 1) {
+
+            targetCell.setAttribute("colspan", colspan - 1);
+
+        } else {
+
+            // Solo eliminar si pertenece realmente a esa fila
+            if (targetCell.parentElement.rowIndex === r) {
+                targetCell.remove();
+            }
+        }
+    }
+
+    saveState();
+}
+
+        if (target.classList.contains("btn-delete-table")) {
+            tableWrapper.remove();
+            saveState();
+        }
+
+        return; // si fue tabla, no seguimos al código de imagen
+    }
+
+    // --- IMÁGENES ---
+    const imageWrapper = target.closest(".image-wrapper");
+    if (imageWrapper) {
+
+        // Alineación
+        if (target.classList.contains("btn-img-left")) {
+            imageWrapper.classList.remove("align-center", "align-right");
+            imageWrapper.classList.add("align-left");
+            saveState();
+        }
+
+        if (target.classList.contains("btn-img-center")) {
+            imageWrapper.classList.remove("align-left", "align-right");
+            imageWrapper.classList.add("align-center");
+            saveState();
+        }
+
+        if (target.classList.contains("btn-img-right")) {
+            imageWrapper.classList.remove("align-left", "align-center");
+            imageWrapper.classList.add("align-right");
+            saveState();
+        }
+
+        // Eliminar imagen
+     if (target.classList.contains("image-control-delete")) {
+
+    const wrapper = imageWrapper;
+    if (!wrapper) return;
+
+    const prev = wrapper.previousElementSibling;
+    const next = wrapper.nextElementSibling;
+
+    //  Eliminar párrafo vacío anterior
+    if (prev && prev.tagName === "P" && prev.innerHTML.trim() === "<br>") {
+        prev.remove();
+    }
+
+    //  Eliminar clear div y posible párrafo vacío debajo
+    if (next && next.classList.contains("image-clear-fix")) {
+
+        const nextAfterClear = next.nextElementSibling;
+
+        next.remove(); // elimina clear-fix
+
+        if (nextAfterClear && 
+            nextAfterClear.tagName === "P" && 
+            nextAfterClear.innerHTML.trim() === "<br>") {
+            nextAfterClear.remove();
+        }
+    }
+
+    //  Eliminar wrapper de imagen
+    wrapper.remove();
+
+    saveState();
+}
+
+        return;
+    }
+
+});
+
+document.addEventListener("mousedown", function (e) {
+
+    if (!e.target.classList.contains("resize-handle")) return;
+
+    const editor = e.target.closest('.editor-section');
+    if (!editor) return;
+
+    e.preventDefault();
+
+    currentHandle = e.target;
+    currentContainer = currentHandle.closest(".img-container");
+    currentImage = currentContainer.querySelector("img");
+
+    if (!currentContainer || !currentImage) return;
+
+    isResizing = true;
+});
+
+document.addEventListener("mousemove", function (e) {
+
+    if (!isResizing || !currentHandle) return;
+
+    const rect = currentContainer.getBoundingClientRect();
+    let newWidth;
+
+    if (currentHandle.className.includes("right")) {
+        newWidth = e.clientX - rect.left;
+    } else {
+        newWidth = rect.right - e.clientX;
+    }
+
+    const minWidth = 100;
+    const maxWidth = 600;
+
+    newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+
+    const aspectRatio = currentImage.naturalWidth / currentImage.naturalHeight;
+    const newHeight = newWidth / aspectRatio;
+
+    currentImage.style.width = newWidth + "px";
+    currentImage.style.height = newHeight + "px";
+
+    currentContainer.style.width = currentImage.style.width;
+    currentContainer.style.height = currentImage.style.height;
+});
+
+document.addEventListener("mouseup", function () {
+
+    if (!isResizing) return;
+
+    isResizing = false;
+    currentHandle = null;
+    currentContainer = null;
+    currentImage = null;
+
+    saveState();
+});
+
+editors.forEach(editor => {
+    editor.addEventListener('input', updateInteractiveListeners);
+});
+// Esperar a que el DOM esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.show-code').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const card = button.closest('.card');
+            const editor = card.querySelector('.editor-section');
+            toggleCodeMode(editor, button);
+        });
+    });
+});
+
+headerEditor.addEventListener('focus', () => {
+    setActiveEditor(headerEditor, 'header');
+});
+
+headerEditor.addEventListener('input', () => {
+    commitChange();
+});
+
+bodyEditor.addEventListener('focus', () => {
+    setActiveEditor(bodyEditor, 'body');
+});
+
+footerEditor.addEventListener('focus', () => {
+    setActiveEditor(footerEditor, 'footer');
+});
+
+document.querySelectorAll(".editor-section").forEach(editor => {
+    editor.addEventListener("input", updatePreview);
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const modalEl = document.getElementById('buttonModal');
+    if (modalEl) {
+        buttonModal = new bootstrap.Modal(modalEl);
+    }
+});
+
+// Listeners de input
+headerEditor.addEventListener("input", saveState);
+bodyEditor.addEventListener("input", saveState);
+footerEditor.addEventListener("input", saveState);
 
 
 
