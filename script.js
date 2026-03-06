@@ -427,6 +427,10 @@ headerEditor.addEventListener('focus', () => {
     setActiveEditor(headerEditor, 'header');
 });
 
+headerEditor.addEventListener('input', () => {
+    commitChange();
+});
+
 bodyEditor.addEventListener('focus', () => {
     setActiveEditor(bodyEditor, 'body');
 });
@@ -803,23 +807,62 @@ function commitChange() {
     saveState();            // guardar estado
 }
 
+headerEditor.addEventListener('input', (e) => {
+
+    // Solo reaccionar si el cambio ocurre dentro de un contenteditable
+    if (e.target.closest('[contenteditable="true"]')) {
+        setActiveEditor(headerEditor, 'header');
+        saveState();
+    }
+
+});
+
 function saveState() {
 
-    if (!activeEditor) return;
+    if (!activeEditor || !activeKey) return;
 
     let editorHistory = histories[activeKey];
-    let rawHTML = activeEditor.innerHTML;
 
-    //  No guardar si es igual al último estado
-    if (editorHistory.history.length > 0 &&
-        editorHistory.history[editorHistory.currentIndex] === rawHTML) {
+    // Obtener HTML actual
+    let rawHTML = activeEditor.innerHTML.trim();
+
+    // Normalizar HTML si es el header (evita inconsistencias con tablas)
+    if (activeKey === 'header') {
+        const temp = document.createElement('div');
+        temp.innerHTML = rawHTML;
+
+        // Forzar estructura estable de tabla
+        const tables = temp.querySelectorAll('table');
+
+        tables.forEach(table => {
+            if (!table.querySelector('tbody')) {
+                const tbody = document.createElement('tbody');
+                tbody.innerHTML = table.innerHTML;
+                table.innerHTML = '';
+                table.appendChild(tbody);
+            }
+        });
+
+        rawHTML = temp.innerHTML.trim();
+    }
+
+    // Evitar guardar estados duplicados
+    if (
+        editorHistory.history.length > 0 &&
+        editorHistory.history[editorHistory.currentIndex] === rawHTML
+    ) {
         return;
     }
 
+    // Si el usuario hizo undo y luego edita algo nuevo
     if (editorHistory.currentIndex < editorHistory.history.length - 1) {
-        editorHistory.history = editorHistory.history.slice(0, editorHistory.currentIndex + 1);
+        editorHistory.history = editorHistory.history.slice(
+            0,
+            editorHistory.currentIndex + 1
+        );
     }
 
+    // Guardar estado
     editorHistory.history.push(rawHTML);
     editorHistory.currentIndex = editorHistory.history.length - 1;
 }
