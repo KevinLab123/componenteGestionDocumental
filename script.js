@@ -12,6 +12,26 @@ function formatDoc(cmd, value=null) {
     }
 }
 
+function handleFileMenu(option) {
+
+    switch(option){
+
+        case "pdf":
+            saveAsPDF("pdf");
+            break;
+
+        case "save":
+            saveContent();
+            break;
+
+        case "new":
+            newDocument();
+            break;
+
+    }
+
+}
+
 let currentFont = 'Arial';
 const filename = document.getElementById('filename');
 let savedRange = null;
@@ -654,8 +674,6 @@ function saveAsPDF(action) {
         saveTemplate();
     }
 }
-
-
 
 function openButtonModal() {
 
@@ -1310,31 +1328,51 @@ function insertImageBase64() {
 }
 
 async function saveContent() {
-    const editorContent = document.getElementById('content').innerHTML;
+
+    const headerContent = document.getElementById('header-editor').innerHTML;
+    const bodyContent = document.getElementById('body-editor').innerHTML;
+    const footerContent = document.getElementById('footer-editor').innerHTML;
+
+    const filename = document.getElementById('filename').value;
+
     const url = 'http://localhost:3000/documents';
 
     try {
-        // 1. Obtener documentos para calcular ID
+
+        // Obtener documentos existentes
         const res = await fetch(url);
         const data = await res.json();
-        
-        // 2. Calcular Max ID + 1
-        const nextId = data.length > 0 
-            ? Math.max(...data.map(d => d.id)) + 1 
+
+        // Calcular ID siguiente
+        const nextId = data.length > 0
+            ? Math.max(...data.map(d => d.id)) + 1
             : 1;
 
-        // 3. Guardar nuevo registro
-        await fetch(url, {
+        // Guardar documento
+        const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: nextId, content: editorContent,
-                name: filename.value,
-                font: currentFont,
-                department: "sin asignar" })
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: nextId,
+                name: filename,
+                font: currentFont || "Arial",
+                department: "sin asignar",
+                header: headerContent,
+                content: bodyContent,
+                footer: footerContent
+            })
         });
-        alert('Documento guardado con ID: ' + nextId);
+
+        const result = await response.json();
+
+        alert("Plantilla guardada correctamente");
+
+        console.log(result);
+
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error guardando documento:', error);
     }
 }
 

@@ -29,12 +29,12 @@
                         <input id="filename" type="text" class="form-control w-25" placeholder="Nombre del archivo"
                             value="Sin nombrar">
                         <!-- Archivo -->
-                        <select class="form-select w-auto" onchange="saveAsPDF(this.value); this.selectedIndex=0;">
-                            <option hidden selected>Archivo</option>
-                            <option value="new">Nuevo</option>
-                            <option value="pdf">Guardar PDF</option>
-                            <option value="save">Guardar Plantilla</option>
-                        </select>
+                    <select class="form-select w-auto" onchange="handleFileMenu(this.value); this.selectedIndex=0;">
+                        <option hidden selected>Archivo</option>
+                        <option value="new">Nuevo</option>
+                        <option value="pdf">Guardar PDF</option>
+                        <option value="save">Guardar Plantilla</option>
+                    </select>
                         <!-- Formato -->
                         <select class="form-select w-auto" onchange="setBlockFormat(this.value); this.selectedIndex=0;">
                             <option hidden selected>Formato</option>
@@ -100,10 +100,6 @@
                     <!-- TOOLBAR -->
                     <div class="card-body border-bottom bg-white">
                         <div class="btn-toolbar gap-2 flex-wrap">
-
-                            <button class="btn btn-outline-secondary" onclick="saveContent()">
-                                <i class="bi bi-floppy2-fill"></i>
-                            </button>
 
                             <div class="btn-group">
                                 <button class="btn btn-outline-secondary" onclick="undo()">
@@ -233,10 +229,6 @@
                     <div class="card-body border-bottom bg-white">
                         <div class="btn-toolbar gap-2 flex-wrap">
 
-                            <button class="btn btn-outline-secondary" onclick="saveContent()">
-                                <i class="bi bi-floppy2-fill"></i>
-                            </button>
-
                             <div class="btn-group">
                                 <button class="btn btn-outline-secondary" onclick="undo()">
                                     <i class="bi bi-arrow-counterclockwise"></i>
@@ -321,10 +313,6 @@
                     <!-- TOOLBAR -->
                     <div class="card-body border-bottom bg-white">
                         <div class="btn-toolbar gap-2 flex-wrap">
-
-                            <button class="btn btn-outline-secondary" onclick="saveContent()">
-                                <i class="bi bi-floppy2-fill"></i>
-                            </button>
 
                             <div class="btn-group">
                                 <button class="btn btn-outline-secondary" onclick="undo()">
