@@ -327,7 +327,14 @@ async function loadTemplate() {
 
         renderTemplate(documentData);
 
+        //  APLICAR LA FUENTE AL DOCUMENTO
+        if (documentData.font) {
 
+            const documentContainer = document.getElementById("document-container");
+
+            documentContainer.style.fontFamily = documentData.font;
+
+        }
 
     } catch (error) {
 
@@ -343,10 +350,26 @@ function renderTemplate(doc) {
     const header = document.getElementById("doc-header");
     const body = document.getElementById("doc-body");
     const footer = document.getElementById("doc-footer");
+    const container = document.getElementById("document-container");
 
     if (header) header.innerHTML = doc.header || "";
     if (body) body.innerHTML = doc.content || "";
     if (footer) footer.innerHTML = doc.footer || "";
+
+    // --- APLICAR FUENTE DE LA PLANTILLA ---
+    if (doc.font && container) {
+
+        // aplicar al contenedor principal
+        container.style.fontFamily = doc.font;
+
+        // forzar que todos los elementos internos usen la fuente
+        const elements = container.querySelectorAll("*");
+
+        elements.forEach(el => {
+            el.style.fontFamily = doc.font;
+        });
+
+    }
 
     // --- LIMPIAR IMÁGENES ---
     sanitizeLoadedImages(header);
