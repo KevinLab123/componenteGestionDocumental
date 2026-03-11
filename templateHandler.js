@@ -3,6 +3,33 @@ let startX = 0;
 let startWidth = 0;
 let resizeCell = null;
 
+const pageFormats = {
+    A4: {
+        width: 794,
+        height: 1123
+    },
+    LETTER: {
+        width: 816,
+        height: 1056
+    },
+    LEGAL: {
+        width: 816,
+        height: 1344
+    }
+};
+
+function applyPageFormat(format) {
+
+    const container = document.getElementById("document-container");
+    const page = pageFormats[format];
+
+    if (!container || !page) return;
+
+    container.style.width = page.width + "px";
+    container.style.minHeight = page.height + "px";
+
+}
+
 function getCurrentCell() {
 
     const selection = window.getSelection();
@@ -366,13 +393,16 @@ function renderTemplate(doc) {
     if (body) body.innerHTML = doc.content || "";
     if (footer) footer.innerHTML = doc.footer || "";
 
+    // --- APLICAR FORMATO DE PÁGINA ---
+    if (doc.pageformat) {
+        applyPageFormat(doc.pageformat);
+    }
+
     // --- APLICAR FUENTE DE LA PLANTILLA ---
     if (doc.font && container) {
 
-        // aplicar al contenedor principal
         container.style.fontFamily = doc.font;
 
-        // forzar que todos los elementos internos usen la fuente
         const elements = container.querySelectorAll("*");
 
         elements.forEach(el => {
@@ -380,7 +410,10 @@ function renderTemplate(doc) {
         });
 
     }
+
+    // --- ELIMINAR BOTÓN DE LOGO ---
     sanitizeHeaderLogoButton(header);
+
     // --- LIMPIAR IMÁGENES ---
     sanitizeLoadedImages(header);
     sanitizeLoadedImages(body);
@@ -395,4 +428,5 @@ function renderTemplate(doc) {
     enableTableEditing(header);
     enableTableEditing(body);
     enableTableEditing(footer);
+
 }

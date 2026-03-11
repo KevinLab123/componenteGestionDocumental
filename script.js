@@ -34,7 +34,7 @@ function handleFileMenu(option) {
 
 }
 
-
+let currentPageFormat = "A4";
 let currentFont = 'Arial';
 const filename = document.getElementById('filename');
 let savedRange = null;
@@ -61,6 +61,9 @@ function setPageFormat(format) {
     const page = pageFormats[format];
 
     if (!page) return;
+
+    // guardar formato seleccionado
+    currentPageFormat = format;
 
     preview.style.width = page.width + "px";
     preview.style.minHeight = page.height + "px";
@@ -1342,16 +1345,13 @@ async function saveContent() {
 
     try {
 
-        // Obtener documentos existentes
         const res = await fetch(url);
         const data = await res.json();
 
-        // Calcular ID siguiente
         const nextId = data.length > 0
             ? Math.max(...data.map(d => d.id)) + 1
             : 1;
 
-        // Guardar documento
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -1364,7 +1364,8 @@ async function saveContent() {
                 department: "sin asignar",
                 header: headerContent,
                 content: bodyContent,
-                footer: footerContent
+                footer: footerContent,
+                pageFormat: currentPageFormat
             })
         });
 
