@@ -277,6 +277,16 @@ function sanitizeLoadedTables(container){
 
 }
 
+function sanitizeHeaderLogoButton(container){
+
+    const logoBtn = container.querySelector("#insert-header-logo-btn");
+
+    if(logoBtn){
+        logoBtn.remove();
+    }
+
+}
+
 function enableTableEditing(container){
 
     const tables = container.querySelectorAll("table");
@@ -370,7 +380,7 @@ function renderTemplate(doc) {
         });
 
     }
-
+    sanitizeHeaderLogoButton(header);
     // --- LIMPIAR IMÁGENES ---
     sanitizeLoadedImages(header);
     sanitizeLoadedImages(body);
