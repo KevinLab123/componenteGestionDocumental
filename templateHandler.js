@@ -30,6 +30,303 @@ function applyPageFormat(format) {
 
 }
 
+function getEditorSelection() {
+
+    const editor = document.getElementById("doc-body");
+    const sel = window.getSelection();
+
+    if (!sel.rangeCount) return null;
+
+    const range = sel.getRangeAt(0);
+
+    if (!editor.contains(range.commonAncestorContainer)) {
+        alert("Selecciona texto dentro del documento.");
+        return null;
+    }
+
+    return { sel, range };
+
+}
+
+function bold() {
+
+    const selectionData = getEditorSelection();
+    if (!selectionData) return;
+
+    const { sel, range } = selectionData;
+
+    const parent = range.commonAncestorContainer.parentElement;
+
+    if (parent.closest('strong')) {
+
+        const strong = parent.closest('strong');
+        strong.replaceWith(...strong.childNodes);
+
+    } else {
+
+        const fragment = range.extractContents();
+
+        const nestedStrong = fragment.querySelectorAll('strong');
+        nestedStrong.forEach(el => el.replaceWith(...el.childNodes));
+
+        const styledElements = fragment.querySelectorAll('[style*="font-weight"]');
+        styledElements.forEach(el => {
+            el.style.fontWeight = '';
+            if (el.getAttribute('style') === '') el.removeAttribute('style');
+        });
+
+        const strong = document.createElement('strong');
+        strong.appendChild(fragment);
+
+        range.insertNode(strong);
+
+    }
+
+    sel.removeAllRanges();
+    commitChange();
+
+}
+
+function underline() {
+
+    const selectionData = getEditorSelection();
+    if (!selectionData) return;
+
+    const { sel, range } = selectionData;
+
+    const parent = range.commonAncestorContainer.nodeType === 3
+        ? range.commonAncestorContainer.parentElement
+        : range.commonAncestorContainer;
+
+    const underlineElement = parent.closest('u');
+
+    if (underlineElement) {
+
+        underlineElement.replaceWith(...underlineElement.childNodes);
+
+    } else {
+
+        const fragment = range.extractContents();
+
+        const nestedUnderline = fragment.querySelectorAll('u');
+        nestedUnderline.forEach(el => el.replaceWith(...el.childNodes));
+
+        const styledElements = fragment.querySelectorAll('[style*="text-decoration"]');
+        styledElements.forEach(el => {
+            el.style.textDecoration = '';
+            if (el.getAttribute('style') === '') el.removeAttribute('style');
+        });
+
+        const u = document.createElement('u');
+        u.appendChild(fragment);
+
+        range.insertNode(u);
+
+    }
+
+    sel.removeAllRanges();
+    commitChange();
+
+}
+
+function italic() {
+
+    const selectionData = getEditorSelection();
+    if (!selectionData) return;
+
+    const { sel, range } = selectionData;
+
+    const parent = range.commonAncestorContainer.nodeType === 3
+        ? range.commonAncestorContainer.parentElement
+        : range.commonAncestorContainer;
+
+    const italicElement = parent.closest('em, i');
+
+    if (italicElement) {
+
+        italicElement.replaceWith(...italicElement.childNodes);
+
+    } else {
+
+        const fragment = range.extractContents();
+
+        const nestedItalics = fragment.querySelectorAll('em, i');
+        nestedItalics.forEach(el => el.replaceWith(...el.childNodes));
+
+        const styledElements = fragment.querySelectorAll('[style*="font-style"]');
+        styledElements.forEach(el => {
+            el.style.fontStyle = '';
+            if (el.getAttribute('style') === '') el.removeAttribute('style');
+        });
+
+        const em = document.createElement('em');
+        em.appendChild(fragment);
+
+        range.insertNode(em);
+
+    }
+
+    sel.removeAllRanges();
+    commitChange();
+
+}
+
+function strikethrough() {
+
+    const selectionData = getEditorSelection();
+    if (!selectionData) return;
+
+    const { sel, range } = selectionData;
+
+    const parent = range.commonAncestorContainer.nodeType === 3
+        ? range.commonAncestorContainer.parentElement
+        : range.commonAncestorContainer;
+
+    const sElement = parent.closest('s, strike, del');
+
+    if (sElement) {
+
+        sElement.replaceWith(...sElement.childNodes);
+
+    } else {
+
+        const fragment = range.extractContents();
+
+        const nestedS = fragment.querySelectorAll('s, strike, del');
+        nestedS.forEach(el => el.replaceWith(...el.childNodes));
+
+        const styledElements = fragment.querySelectorAll('[style*="text-decoration"]');
+        styledElements.forEach(el => {
+
+            if (el.style.textDecoration.includes('line-through')) {
+                el.style.textDecoration = '';
+            }
+
+            if (el.getAttribute('style') === '') {
+                el.removeAttribute('style');
+            }
+
+        });
+
+        const s = document.createElement('s');
+        s.appendChild(fragment);
+
+        range.insertNode(s);
+
+        range.setStartAfter(s);
+        range.collapse(true);
+
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+    }
+
+    commitChange();
+
+}
+
+function alignText(mode) {
+
+    const selectionData = getEditorSelection();
+    if (!selectionData) return;
+
+    const { range } = selectionData;
+
+    const editor = document.getElementById("doc-body");
+
+    let node = range.startContainer;
+
+    if (node.nodeType === 3) {
+        node = node.parentElement;
+    }
+
+    if (!editor.contains(node)) return;
+
+    let block = node.closest('p, h1, h2, h3, h4, h5, h6, li');
+
+    // Si no existe bloque, crearlo
+    if (!block) {
+
+        const p = document.createElement('p');
+        p.innerHTML = editor.innerHTML;
+
+        editor.innerHTML = '';
+        editor.appendChild(p);
+
+        block = p;
+    }
+
+    const before = editor.innerHTML;
+
+    block.style.textAlign = mode;
+
+    const after = editor.innerHTML;
+
+    if (before !== after) {
+        commitChange();
+    }
+
+}
+
+function toggleList(type) {
+
+    const selectionData = getEditorSelection();
+    if (!selectionData) return;
+
+    const { selection, range } = selectionData;
+    const editor = document.getElementById("doc-body");
+
+    const parent = range.commonAncestorContainer.nodeType === 3
+        ? range.commonAncestorContainer.parentElement
+        : range.commonAncestorContainer;
+
+    const list = parent.closest('ul, ol');
+
+    const before = editor.innerHTML;
+
+    // ===== SI YA ESTÁ DENTRO DE UNA LISTA → QUITAR =====
+    if (list && editor.contains(list)) {
+
+        const fragment = document.createDocumentFragment();
+
+        Array.from(list.querySelectorAll('li')).forEach(li => {
+
+            const p = document.createElement('p');
+
+            while (li.firstChild) {
+                p.appendChild(li.firstChild);
+            }
+
+            fragment.appendChild(p);
+
+        });
+
+        list.replaceWith(fragment);
+
+    } 
+    // ===== SI NO ESTÁ EN LISTA → CREAR =====
+    else {
+
+        const newList = document.createElement(type);
+        const li = document.createElement('li');
+
+        li.appendChild(range.extractContents());
+        newList.appendChild(li);
+
+        range.insertNode(newList);
+
+    }
+
+    selection.removeAllRanges();
+
+    const after = editor.innerHTML;
+
+    if (before !== after) {
+        commitChange();
+    }
+
+}
+
 function getCurrentCell() {
 
     const selection = window.getSelection();
