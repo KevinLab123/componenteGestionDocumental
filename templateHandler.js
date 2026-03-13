@@ -978,6 +978,64 @@ function deleteColumn(table){
 
 }
 
+function deleteRow(table){
+
+    const currentCell = getCurrentCell();
+    if(!currentCell) return;
+
+    const matrix = buildTableMatrix(table);
+
+    let rowIndex = -1;
+
+    for(let r = 0; r < matrix.length; r++){
+        if(matrix[r].includes(currentCell)){
+            rowIndex = r;
+            break;
+        }
+    }
+
+    if(rowIndex === -1) return;
+
+    const row = table.rows[rowIndex];
+
+    for(let c = 0; c < matrix[rowIndex].length; c++){
+
+        const cell = matrix[rowIndex][c];
+        if(!cell) continue;
+
+        const cellRow = cell.parentElement.rowIndex;
+
+        const rowspan = parseInt(cell.getAttribute("rowspan")) || 1;
+
+        // Caso 1: la celda viene desde arriba y atraviesa la fila eliminada
+        if(cellRow < rowIndex){
+
+            cell.setAttribute("rowspan", rowspan - 1);
+
+        }
+        // Caso 2: la celda comienza en la fila eliminada y tiene rowspan
+        else if(cellRow === rowIndex && rowspan > 1){
+
+            const nextRow = table.rows[rowIndex + 1];
+
+            if(nextRow){
+
+                const newCell = cell.cloneNode(true);
+
+                newCell.setAttribute("rowspan", rowspan - 1);
+
+                nextRow.insertBefore(newCell, nextRow.cells[c] || null);
+
+            }
+
+        }
+
+    }
+
+    row.remove();
+
+}
+
 document.addEventListener("click", function(e){
 
     const target = e.target;
