@@ -2,6 +2,7 @@ let resizing = false;
 let startX = 0;
 let startWidth = 0;
 let resizeCell = null;
+let templateFont = null;
 
 const pageFormats = {
     A4: {
@@ -477,6 +478,51 @@ function getEditorSelection() {
 
 }
 
+async function getTemplateFont(documentId) {
+
+    try {
+
+        const response = await fetch(`http://localhost:3000/documents/${documentId}`);
+
+        if (!response.ok) {
+            throw new Error("Error HTTP: " + response.status);
+        }
+
+        const data = await response.json();
+
+        const documentData = Array.isArray(data) ? data[0] : data;
+
+        templateFont = documentData.font;
+
+        return templateFont;
+
+    } catch (error) {
+
+        console.error("Error obteniendo la fuente:", error);
+        return null;
+
+    }
+
+}
+
+function applyTemplateFont() {
+
+    if (!templateFont) return;
+
+    const container = document.getElementById("document-container");
+
+    // Aplicar al contenedor
+    container.style.fontFamily = templateFont;
+
+    // Aplicar a todos los elementos dentro del documento
+    const allElements = container.querySelectorAll('*');
+
+    allElements.forEach(el => {
+        el.style.fontFamily = templateFont;
+    });
+
+}
+
 function bold() {
 
     const selectionData = getEditorSelection();
@@ -512,6 +558,10 @@ function bold() {
     }
 
     sel.removeAllRanges();
+
+    // NORMALIZAR FUENTE
+    applyTemplateFont();
+
     saveState();
 
 }
@@ -554,6 +604,8 @@ function underline() {
     }
 
     sel.removeAllRanges();
+    // NORMALIZAR FUENTE
+    applyTemplateFont();
     saveState();
 
 }
@@ -596,6 +648,8 @@ function italic() {
     }
 
     sel.removeAllRanges();
+    // NORMALIZAR FUENTE
+    applyTemplateFont();
     saveState();
 
 }
@@ -649,7 +703,8 @@ function strikethrough() {
         sel.addRange(range);
 
     }
-
+    // NORMALIZAR FUENTE
+    applyTemplateFont();
     saveState();
 
 }
@@ -936,11 +991,13 @@ document.addEventListener("click", function(e){
     // Agregar columna
     if(target.classList.contains("btn-add-col")){
         addColumn(table);
+        applyTemplateFont();
     }
 
     // Eliminar columna
     if(target.classList.contains("btn-delete-col")){
         deleteColumn(table);
+        applyTemplateFont();
     }
 
     // Agregar fila
@@ -963,22 +1020,106 @@ document.addEventListener("click", function(e){
             newRow.appendChild(td);
 
         }
+        applyTemplateFont();
     }
 
     // Eliminar fila
     if(target.classList.contains("btn-delete-row")){
         deleteRow(table);
+        applyTemplateFont();
     }
 
     // Combinar a la derecha
     if(target.classList.contains("btn-merge-right")){
         mergeRight(table);
+        applyTemplateFont();
     }
 
 });
 
 
+function clearFormattingToParagraph() {
 
+    const editor = document.getElementById("doc-body");
+    if (!editor) return;
+
+    editor.focus();
+
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+
+    const range = sel.getRangeAt(0);
+
+    // Verificar que la selección esté dentro del editor
+    if (!editor.contains(range.commonAncestorContainer)) return;
+
+    let node = range.commonAncestorContainer;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+        node = node.parentNode;
+    }
+
+    const paragraph = node.closest('p, div, li, h1, h2, h3, h4, h5, h6');
+    if (!paragraph || !editor.contains(paragraph)) return;
+
+    // ZONAS PROTEGIDAS
+    const protectedSelector = `
+        table, thead, tbody, tfoot, tr, td, th,
+        button, input, select, textarea,
+        [contenteditable="false"],
+        [data-wrapper],
+        [data-protected]
+    `;
+
+    // Si está dentro de zona protegida
+    if (paragraph.closest(protectedSelector)) {
+        console.warn("Zona protegida — no se limpia formato");
+        return;
+    }
+
+    // Etiquetas inline a remover
+    const inlineTags = [
+        'strong','b','em','i','u','s','del','strike',
+        'span','font','mark','small','big','sub','sup'
+    ];
+
+    paragraph.querySelectorAll(inlineTags.join(',')).forEach(el => {
+
+        if (el.closest(protectedSelector)) return;
+
+        while (el.firstChild) {
+            el.parentNode.insertBefore(el.firstChild, el);
+        }
+
+        el.remove();
+    });
+
+    // Limpiar atributos visuales
+    paragraph.querySelectorAll('*').forEach(el => {
+
+        if (el.closest(protectedSelector)) return;
+
+        el.removeAttribute('style');
+        el.removeAttribute('class');
+        el.removeAttribute('color');
+        el.removeAttribute('face');
+        el.removeAttribute('size');
+    });
+
+    paragraph.removeAttribute('style');
+    paragraph.removeAttribute('class');
+
+    // Restaurar selección
+    sel.removeAllRanges();
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(paragraph);
+    newRange.collapse(false);
+
+    sel.addRange(newRange);
+    applyTemplateFont();
+    saveState();
+}
 
 function clearDocument() {
 
@@ -1063,6 +1204,7 @@ function enableTableEditing(container){
 }
 
 
+
 async function loadTemplate() {
 
     clearDocument();
@@ -1084,22 +1226,17 @@ async function loadTemplate() {
 
         const data = await response.json();
 
-        console.log("Respuesta API:", data);
-
         const documentData = Array.isArray(data) ? data[0] : data;
 
         renderTemplate(documentData);
 
-        //  APLICAR LA FUENTE AL DOCUMENTO
-        if (documentData.font) {
+        // Obtener fuente desde BD
+        await getTemplateFont(id);
+        console.log("Fuente de plantilla:", templateFont);
 
-            const documentContainer = document.getElementById("document-container");
-
-            documentContainer.style.fontFamily = documentData.font;
-
-        }
 
         saveState();
+
     } catch (error) {
 
         console.error("Error real:", error);
