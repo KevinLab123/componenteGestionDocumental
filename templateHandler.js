@@ -23,6 +23,7 @@ let isResizing = false;
 let currentHandle = null;
 let currentContainer = null;
 let currentImage = null;
+let currentPageFormat = "A4";
 function insertImageBase64() {
 
     const editor = document.getElementById("doc-body");
@@ -142,11 +143,12 @@ function insertImageBase64() {
                         editor.append(spaceAbove, wrapper, clearDiv, spaceBelow);
 
                     }
-
+                    updatePreview();
                     saveState();
                 };
 
                 reader.readAsDataURL(result);
+                updatePreview();
                 saveState();
             },
 
@@ -209,6 +211,7 @@ function undo() {
         editor.innerHTML = historyStack[historyIndex];
 
     }
+    updatePreview();
 }
 
 function redo() {
@@ -222,6 +225,7 @@ function redo() {
         editor.innerHTML = historyStack[historyIndex];
 
     }
+    updatePreview();
 }
 
 function addLink() {
@@ -281,7 +285,7 @@ function addLink() {
     range.insertNode(a);
 
     sel.removeAllRanges();
-
+    updatePreview();
     saveState();
 }
 
@@ -451,12 +455,20 @@ document.addEventListener("mouseup", function () {
 function applyPageFormat(format) {
 
     const container = document.getElementById("document-container");
+    const preview = document.getElementById("pdf-preview");
+
     const page = pageFormats[format];
 
-    if (!container || !page) return;
+    if (!container || !preview || !page) return;
 
+    // Editor
     container.style.width = page.width + "px";
     container.style.minHeight = page.height + "px";
+
+    //  Preview (TU IDEA)
+    preview.style.width = page.width + "px";
+    preview.style.minHeight = page.height + "px";
+
     saveState();
 }
 
@@ -561,7 +573,7 @@ function bold() {
 
     // NORMALIZAR FUENTE
     applyTemplateFont();
-
+    updatePreview();
     saveState();
 
 }
@@ -606,6 +618,7 @@ function underline() {
     sel.removeAllRanges();
     // NORMALIZAR FUENTE
     applyTemplateFont();
+    updatePreview();
     saveState();
 
 }
@@ -650,6 +663,7 @@ function italic() {
     sel.removeAllRanges();
     // NORMALIZAR FUENTE
     applyTemplateFont();
+    updatePreview();
     saveState();
 
 }
@@ -705,6 +719,7 @@ function strikethrough() {
     }
     // NORMALIZAR FUENTE
     applyTemplateFont();
+    updatePreview();
     saveState();
 
 }
@@ -737,6 +752,7 @@ function alignText(mode) {
     });
 
     if (changed) {
+        updatePreview();
         saveState();
     }
 
@@ -796,6 +812,7 @@ function toggleList(type) {
     const after = editor.innerHTML;
 
     if (before !== after) {
+    updatePreview();
     saveState();
     }
 
@@ -873,7 +890,8 @@ function mergeRight(table) {
     });
 
     td.setAttribute("colspan", totalColumns);
-
+    updatePreview();
+    saveState();
 }
 
 function addColumn(table) {
@@ -922,6 +940,8 @@ function addColumn(table) {
 
         }
     }
+    saveState();
+    updatePreview();
 }
 
 function deleteColumn(table){
@@ -965,7 +985,8 @@ function deleteColumn(table){
         }
 
     }
-
+    saveState();
+    updatePreview();
 }
 
 function deleteRow(table){
@@ -1023,7 +1044,8 @@ function deleteRow(table){
     }
 
     row.remove();
-
+    updatePreview();
+    saveState();
 }
 
 document.addEventListener("click", function(e){
@@ -1189,8 +1211,94 @@ function clearFormattingToParagraph() {
     sel.addRange(newRange);
 
     applyTemplateFont();
+    updatePreview();
     saveState();
 }
+
+function buildCleanSection(editorId) {
+
+    const original = document.getElementById(editorId);
+    const clone = original.cloneNode(true);
+
+    clone.removeAttribute("contenteditable");
+    clone.classList.remove("editor-section");
+
+    //  1. Eliminar todo lo marcado para ignorar
+    clone.querySelectorAll("[data-html2canvas-ignore]").forEach(el => el.remove());
+
+    clone.querySelectorAll(
+        ".image-controls-top, .image-controls-bottom, .resize-handle, " +
+        ".table-controls-top, .image-clear-fix, .no-print, .no-pdf"
+    ).forEach(el => el.remove());
+
+    //  2. LIMPIAR IMÁGENES PERO RESPETAR ALINEACIÓN
+    clone.querySelectorAll(".image-wrapper").forEach(wrapper => {
+
+        const img = wrapper.querySelector("img");
+        if (!img) return;
+
+        let alignmentClass = "pdf-align-center";
+
+        if (wrapper.classList.contains("align-left")) {
+            alignmentClass = "pdf-align-left";
+        }
+        else if (wrapper.classList.contains("align-right")) {
+            alignmentClass = "pdf-align-right";
+        }
+
+        const cleanContainer = document.createElement("div");
+        cleanContainer.className = "pdf-image-container " + alignmentClass;
+
+        cleanContainer.appendChild(img.cloneNode(true));
+
+        wrapper.replaceWith(cleanContainer);
+    });
+
+    //  3. LIMPIAR TABLAS
+    clone.querySelectorAll(".table-wrapper").forEach(wrapper => {
+
+        const table = wrapper.querySelector("table");
+        if (!table) return;
+
+        const cleanTable = table.cloneNode(true);
+        wrapper.replaceWith(cleanTable);
+    });
+
+    return clone;
+}
+
+function updatePreview() {
+
+    const preview = document.getElementById("pdf-preview");
+    preview.innerHTML = "";
+
+
+    const header = buildCleanSection("doc-header");
+    const body   = buildCleanSection("doc-body");
+    const footer = buildCleanSection("doc-footer");
+
+    const documentWrapper = document.createElement("div");
+    documentWrapper.className = "pdf-document";
+
+    const headerContainer = document.createElement("div");
+    headerContainer.className = "pdf-header";
+    headerContainer.appendChild(header);
+
+    const bodyContainer = document.createElement("div");
+    bodyContainer.className = "pdf-content";
+    bodyContainer.appendChild(body);
+
+    const footerContainer = document.createElement("div");
+    footerContainer.className = "pdf-footer";
+    footerContainer.appendChild(footer);
+
+    documentWrapper.append(headerContainer, bodyContainer, footerContainer);
+    preview.appendChild(documentWrapper);
+}
+
+["doc-header", "doc-body", "doc-footer"].forEach(id => {
+    document.getElementById(id).addEventListener("input", updatePreview);
+});
 
 function clearDocument() {
 
@@ -1274,8 +1382,6 @@ function enableTableEditing(container){
 
 }
 
-
-
 async function loadTemplate() {
 
     clearDocument();
@@ -1305,7 +1411,7 @@ async function loadTemplate() {
         await getTemplateFont(id);
         console.log("Fuente de plantilla:", templateFont);
 
-
+        updatePreview();
         saveState();
 
     } catch (error) {
