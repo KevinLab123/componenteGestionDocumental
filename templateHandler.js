@@ -1215,6 +1215,30 @@ function clearFormattingToParagraph() {
     saveState();
 }
 
+function saveAsPDF() {
+        const preview = document.getElementById("pdf-preview");
+
+        const options = {
+            margin: 0,
+            filename: "Reporte" + ".pdf",
+            image: { type: "jpeg", quality: 0.98 },
+            html2canvas: { 
+                scale: 2,
+                useCORS: true
+            },
+            jsPDF: { 
+            unit: "px",
+            format: [preview.offsetWidth, preview.offsetHeight],
+            orientation: "portrait"
+            }
+        };
+
+        html2pdf()
+            .set(options)
+            .from(preview)
+            .save();
+}
+
 function buildCleanSection(editorId) {
 
     const original = document.getElementById(editorId);
