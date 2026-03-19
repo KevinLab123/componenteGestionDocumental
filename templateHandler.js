@@ -1406,6 +1406,7 @@ function enableTableEditing(container){
 
 }
 
+let currentBaseTemplateId = null;
 async function loadTemplate() {
 
     clearDocument();
@@ -1433,6 +1434,7 @@ async function loadTemplate() {
 
         // Obtener fuente desde BD
         await getTemplateFont(id);
+        currentBaseTemplateId = id;
         console.log("Fuente de plantilla:", templateFont);
 
         updatePreview();
@@ -1445,6 +1447,52 @@ async function loadTemplate() {
 
     }
 
+}
+
+// Función para registrar el reporte sin consecutivo específico
+const API_URL = 'http://localhost:3000';
+async function saveReport() {
+    if (!currentBaseTemplateId) {
+        alert("Error: No hay una plantilla base cargada.");
+        return;
+    }
+
+    try {
+        // 1. Consultar reportes actuales para calcular el siguiente ID
+        const response = await fetch(`${API_URL}/reports`);
+        const reports = await response.json();
+
+        // Calcular ID: si no hay reportes empezamos en 1, sino Max + 1
+        const nextId = reports.length > 0 
+            ? Math.max(...reports.map(r => r.id)) + 1 
+            : 1;
+
+        // 2. Preparar el objeto para la DB
+        // Enviamos 'N/A' o un string vacío en consecutive para que el INSERT funcione
+        const reportBody = {
+            id: nextId,
+            baseTemplate: currentBaseTemplateId,
+            consecutive: "SIN_CONSECUTIVO" 
+        };
+
+        // 3. Petición POST a la API
+        const saveResponse = await fetch(`${API_URL}/reports`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reportBody)
+        });
+
+        if (saveResponse.ok) {
+            alert(`Reporte guardado exitosamente con ID: ${nextId}`);
+        } else {
+            const err = await saveResponse.json();
+            alert("Error al guardar: " + err.error);
+        }
+
+    } catch (error) {
+        console.error("Error en la operación:", error);
+        alert("Error de conexión con el servidor.");
+    }
 }
 
 function renderTemplate(doc) {

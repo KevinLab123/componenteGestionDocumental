@@ -16,6 +16,8 @@ const getDocuments = async (req, res) => {
 }
 
 
+
+
 const getDocumentById = async (req, res) => {
     const id = req.params.id
     const response = await pool.query('SELECT * FROM documents WHERE id = $1', [id]);
@@ -64,10 +66,84 @@ const updateDocument = async (req, res) => {
     res.json(`Document with id ${id} updated successfully`);
 }
 
+const createReport = async (req, res) => {
+    // Extraemos el id, baseTemplate y consecutive del cuerpo de la petición
+    const { id, baseTemplate, consecutive } = req.body;
+
+    try {
+        const response = await pool.query(
+            'INSERT INTO reports (id, "baseTemplate", consecutive) VALUES ($1, $2, $3) RETURNING *',
+            [id, baseTemplate, consecutive]
+        );
+
+        console.log("Reporte creado:", response.rows[0]);
+
+        res.status(201).json({
+            message: 'Reporte registrado exitosamente',
+            body: response.rows[0]
+        });
+    } catch (error) {
+        console.error("Error al insertar en reports:", error);
+        
+        // Manejo básico de error por si el ID ya existe
+        if (error.code === '23505') {
+            return res.status(400).json({ message: `El ID ${id} ya existe.` });
+        }
+
+        res.status(500).json({
+            message: 'Error en el servidor al crear el reporte',
+            error: error.message
+        });
+    }
+}
+
+const getReports = async (req, res) => {
+    try {
+        // Consultamos todos los registros de la tabla reports
+        // Usamos comillas dobles si quieres traer la columna con su nombre exacto
+        const response = await pool.query('SELECT * FROM reports');
+        
+        // Enviamos el arreglo de objetos directamente
+        res.status(200).json(response.rows);
+    } catch (error) {
+        console.error("Error al obtener reportes:", error);
+        res.status(500).json({
+            message: "Error al obtener la lista de reportes",
+            error: error.message
+        });
+    }
+};
+
+const getReportById = async (req, res) => {
+    const id = req.params.id;
+    try {
+        // Consultamos el reporte específico
+        const response = await pool.query(
+            'SELECT * FROM reports WHERE id = $1',[id]
+        );
+
+        if (response.rows.length === 0) {
+            return res.status(404).json({ message: 'Reporte no encontrado' });
+        }
+
+        // Devolvemos el primer (y único) resultado
+        res.json(response.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: 'Error al obtener el reporte',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getDocuments,
     createDocument,
     getDocumentById,
     deleteDocument,
-    updateDocument
+    updateDocument,
+    createReport,
+    getReports,
+    getReportById
 };
