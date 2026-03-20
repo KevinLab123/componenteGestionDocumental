@@ -1406,48 +1406,61 @@ function enableTableEditing(container){
 
 }
 
-let currentBaseTemplateId = null;
-async function loadTemplate() {
 
+// Variable global que ya tenías
+let currentBaseTemplateId = null;
+
+// NUEVA FUNCIÓN: Extraer el ID de la URL
+function getTemplateIdFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id'); // Retorna el valor de ?id=X
+}
+
+async function loadTemplate() {
     clearDocument();
 
-    const id = prompt("Ingrese el ID del documento");
+    // CAMBIO CLAVE: Intentamos obtener el ID de la URL primero
+    let id = getTemplateIdFromURL();
 
+    // Si por alguna razón no hay ID en la URL, podemos dejar el prompt como respaldo 
+    // o redirigir de vuelta al selector
     if (!id) {
-        alert("Debe ingresar un ID");
-        return;
+        console.warn("No se encontró ID en la URL, solicitando manualmente...");
+        id = prompt("Ingrese el ID del documento");
     }
 
+    if (!id) return;
+
     try {
-
         const response = await fetch(`http://localhost:3000/documents/${id}`);
-
-        if (!response.ok) {
-            throw new Error("Error HTTP: " + response.status);
-        }
+        if (!response.ok) throw new Error("Error HTTP: " + response.status);
 
         const data = await response.json();
-
         const documentData = Array.isArray(data) ? data[0] : data;
 
+        // Tu lógica de renderizado existente
         renderTemplate(documentData);
 
-        // Obtener fuente desde BD
+        // Lógica de fuente y estados
         await getTemplateFont(id);
         currentBaseTemplateId = id;
-        console.log("Fuente de plantilla:", templateFont);
-
+        
         updatePreview();
         saveState();
 
     } catch (error) {
-
-        console.error("Error real:", error);
-        alert("No se pudo cargar el documento");
-
+        console.error("Error al cargar:", error);
+        alert("No se pudo cargar la plantilla seleccionada");
     }
-
 }
+
+// EJECUCIÓN AUTOMÁTICA AL CARGAR LA PÁGINA
+window.onload = () => {
+    // Si la URL trae un ID, cargamos automáticamente
+    if (getTemplateIdFromURL()) {
+        loadTemplate();
+    }
+};
 
 // Función para registrar el reporte sin consecutivo específico
 const API_URL = 'http://localhost:3000';

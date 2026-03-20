@@ -477,3 +477,28 @@ p, h1, h2, h3, h4, h5, h6 {
     transform: translate(50%, 50%);
     cursor: nwse-resize;
 }
+
+/* Estilos específicos para las tarjetas del selector */
+.template-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: default;
+}
+
+.template-card:hover {
+    transform: translateY(-5px);
+    /* El !important asegura que sobreescriba las sombras por defecto de Bootstrap */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+/* El recuadro de detalles (el "Paper") */
+.template-details-box {
+    background-color: #fcfcfc !important;
+    border-left: 5px solid #5c5c5c6b !important; /* Verde del Ministerio para identificarlo */
+}
+
+/* Estilizamos el título dentro de nuestra tarjeta específica */
+.template-card .card-title {
+    color: #495057;
+    letter-spacing: 0.5px;
+}
