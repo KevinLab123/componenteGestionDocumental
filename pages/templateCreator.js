@@ -1416,6 +1416,7 @@ async function saveContent() {
     }
 }
 
+
 function clearFormattingToParagraph() {
     if (!activeEditor){
         alert("Selecciona un editor antes de insertar la tabla.");

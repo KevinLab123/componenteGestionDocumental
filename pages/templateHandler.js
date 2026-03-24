@@ -1480,12 +1480,19 @@ async function saveReport() {
             ? Math.max(...reports.map(r => r.id)) + 1 
             : 1;
 
+            const headerHTML = document.getElementById('doc-header').innerHTML;
+            const contentHTML = document.getElementById('doc-body').innerHTML;
+            const footerHTML = document.getElementById('doc-footer').innerHTML;
+
         // 2. Preparar el objeto para la DB
         // Enviamos 'N/A' o un string vacío en consecutive para que el INSERT funcione
         const reportBody = {
             id: nextId,
             baseTemplate: currentBaseTemplateId,
-            consecutive: "SIN_CONSECUTIVO" 
+            consecutive: "SIN_CONSECUTIVO" ,
+            header: headerHTML,
+            content: contentHTML,
+            footer: footerHTML
         };
 
         // 3. Petición POST a la API

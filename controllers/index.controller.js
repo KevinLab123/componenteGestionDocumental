@@ -69,12 +69,12 @@ const updateDocument = async (req, res) => {
 
 const createReport = async (req, res) => {
     // Extraemos el id, baseTemplate y consecutive del cuerpo de la petición
-    const { id, baseTemplate, consecutive } = req.body;
+    const { id, baseTemplate, consecutive, header, content, footer } = req.body;
 
     try {
         const response = await pool.query(
-            'INSERT INTO reports (id, "baseTemplate", consecutive) VALUES ($1, $2, $3) RETURNING *',
-            [id, baseTemplate, consecutive]
+            'INSERT INTO reports (id, "baseTemplate", consecutive, header, content, footer) VALUES ($1, $2, $3,$4,$5,$6) RETURNING *',
+            [id, baseTemplate, consecutive, header, content, footer]
         );
 
         console.log("Reporte creado:", response.rows[0]);
