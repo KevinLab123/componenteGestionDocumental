@@ -12,6 +12,46 @@ function formatDoc(cmd, value=null) {
     }
 }
 
+
+
+
+
+let currentPageFormat = "A4";
+let currentFont = 'Arial';
+const filename = document.getElementById('filename');
+let savedRange = null;
+let buttonModal = null;
+
+const pageFormats = {
+    A4: {
+        width: 794,
+        height: 1123
+    },
+    LETTER: {
+        width: 816,
+        height: 1056
+    },
+    LEGAL: {
+        width: 816,
+        height: 1344
+    }
+};
+
+function setPageFormat(format) {
+
+    const preview = document.getElementById("pdf-preview");
+    const page = pageFormats[format];
+
+    if (!page) return;
+
+    // guardar formato seleccionado
+    currentPageFormat = format;
+
+    preview.style.width = page.width + "px";
+    preview.style.minHeight = page.height + "px";
+
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     // Cambiar 'id' por 'edit' para que coincida con el dashboard
@@ -62,7 +102,7 @@ async function loadTemplateToEdit(id) {
             // Asumiendo que tienes una función setPageFormat definida
             setPageFormat(template.pageformat); 
         }
-
+        setFontFamily(template.font);
         console.log("¡Renderización completada!");
 
     } catch (error) {
@@ -74,20 +114,30 @@ async function updateTemplate() {
     const id = document.body.dataset.editingId;
     
     if (!id) {
-        console.error("No hay un ID de plantilla para actualizar. ¿Es una plantilla nueva?");
+        alert("No se pudo identificar la plantilla para actualizar.");
         return; 
     }
+        let pdfBase64 = "";
+    try {
+        pdfBase64 = await generatePDFBase64();
+    } catch (e) {
+        console.error("Error generando preview:", e);
+    }
 
-    // Capturamos el contenido actual de los editores
+    // Capturamos el objeto completo para la API
     const updatedData = {
         name: document.getElementById('filename').value,
-        header: document.getElementById('header-editor').innerHTML,
+        // Guardamos el HTML completo del header (incluye la tabla y el logo)
+        header: document.getElementById('header-editor').innerHTML, 
         content: document.getElementById('body-editor').innerHTML,
         footer: document.getElementById('footer-editor').innerHTML,
-        // Capturamos el departamento desde el atributo data-variable si es necesario
-        department: document.querySelector('[data-variable="departamento"]')?.innerText || '',
-        font: document.body.style.fontFamily,
-        pageformat: document.body.dataset.currentPageFormat || 'A4'
+        department: document.querySelector('[data-variable="departamento"]')?.innerText || 'General',
+        // Capturamos la fuente actual del editor principal o una por defecto
+        font: window.getComputedStyle(document.getElementById('body-editor')).fontFamily,
+        // Usamos el dataset que ya manejas o A4 por defecto
+        pageformat: currentPageFormat,
+        // Opcional: Podrías generar un string corto del contenido para la previsualización en el CRUD
+        preview: pdfBase64
     };
 
     try {
@@ -97,14 +147,17 @@ async function updateTemplate() {
             body: JSON.stringify(updatedData)
         });
 
+        const result = await response.json();
+
         if (response.ok) {
-            alert("¡Plantilla actualizada correctamente!");
+            alert(" Cambios guardados correctamente");
         } else {
+            console.error("Respuesta del servidor:", result);
             throw new Error("Error en la actualización");
         }
     } catch (error) {
-        console.error("Error técnico al actualizar:", error);
-        alert("Hubo un problema al guardar los cambios.");
+        console.error("Error técnico:", error);
+        alert(" Error al conectar con el servidor.");
     }
 }
 
@@ -128,42 +181,6 @@ function handleFileMenu(option) {
             window.location.href = 'templateCreator.html';
             break;
     }
-}
-
-let currentPageFormat = "A4";
-let currentFont = 'Arial';
-const filename = document.getElementById('filename');
-let savedRange = null;
-let buttonModal = null;
-
-const pageFormats = {
-    A4: {
-        width: 794,
-        height: 1123
-    },
-    LETTER: {
-        width: 816,
-        height: 1056
-    },
-    LEGAL: {
-        width: 816,
-        height: 1344
-    }
-};
-
-function setPageFormat(format) {
-
-    const preview = document.getElementById("pdf-preview");
-    const page = pageFormats[format];
-
-    if (!page) return;
-
-    // guardar formato seleccionado
-    currentPageFormat = format;
-
-    preview.style.width = page.width + "px";
-    preview.style.minHeight = page.height + "px";
-
 }
 
 function bold() {
@@ -351,7 +368,7 @@ function alignText(mode) {
 
     let block = node.closest('p, h1, h2, h3, h4, h5, h6, li');
 
-    // 🔥 Si no existe bloque, crearlo
+    //  Si no existe bloque, crearlo
     if (!block) {
         const p = document.createElement('p');
         p.innerHTML = activeEditor.innerHTML;
@@ -360,14 +377,14 @@ function alignText(mode) {
         block = p;
     }
 
-    // 🔥 Guardar estado antes del cambio
+    //  Guardar estado antes del cambio
     const before = activeEditor.innerHTML;
 
     block.style.textAlign = mode;
 
     const after = activeEditor.innerHTML;
 
-    // 🔥 Solo guardar si realmente cambió
+    //  Solo guardar si realmente cambió
     if (before !== after) {
         saveState();
     }

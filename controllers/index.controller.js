@@ -60,11 +60,58 @@ const deleteDocument = async (req, res) => {
 }
 
 const updateDocument = async (req, res) => {
-    const id = req.params.id
-    const {content} = req.body;
-    const response = await pool.query('UPDATE documents SET content = $1 WHERE id = $2', [content, id]);
-    console.log(response);
-    res.json(`Document with id ${id} updated successfully`);
+    const id = req.params.id;
+    
+    // Extraemos todos los campos que vienen del body
+    const { 
+        name, 
+        content, 
+        department, 
+        font, 
+        header, 
+        footer, 
+        pageformat, 
+        preview 
+    } = req.body;
+
+    try {
+        const query = `
+            UPDATE documents 
+            SET name = $1, 
+                content = $2, 
+                department = $3, 
+                font = $4, 
+                header = $5, 
+                footer = $6, 
+                pageformat = $7, 
+                preview = $8
+            WHERE id = $9
+        `;
+
+        const values = [
+            name, 
+            content, 
+            department, 
+            font, 
+            header, 
+            footer, 
+            pageformat, 
+            preview, 
+            id
+        ];
+
+        const response = await pool.query(query, values);
+
+        if (response.rowCount === 0) {
+            return res.status(404).json({ message: "Plantilla no encontrada" });
+        }
+
+        res.json({ message: `Plantilla ${id} actualizada correctamente` });
+        
+    } catch (error) {
+        console.error("Error en updateDocument:", error);
+        res.status(500).json({ error: "Error interno del servidor al actualizar" });
+    }
 }
 
 const createReport = async (req, res) => {
