@@ -201,6 +201,52 @@ const deleteReport = async (req, res) => {
     }
 };
 
+const updateReport = async (req, res) => {
+    const id = req.params.id;
+    const { 
+        baseTemplate, 
+        consecutive, 
+        header, 
+        content, 
+        footer 
+    } = req.body;
+
+    try {
+        // Agregamos comillas dobles a "baseTemplate" para respetar la mayúscula
+        const query = `
+            UPDATE reports 
+            SET "baseTemplate" = $1, 
+                consecutive = $2, 
+                header = $3, 
+                content = $4, 
+                footer = $5
+            WHERE id = $6
+        `;
+
+        const values = [
+            baseTemplate, 
+            consecutive, 
+            header, 
+            content, 
+            footer, 
+            id
+        ];
+
+        const response = await pool.query(query, values);
+
+        if (response.rowCount === 0) {
+            return res.status(404).json({ message: "Reporte no encontrado" });
+        }
+
+        res.json({ message: `Reporte ${id} actualizado correctamente` });
+        
+    } catch (error) {
+        // Esto es lo que imprimió el error en tu terminal
+        console.error("Error en updateReport:", error); 
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+}
+
 module.exports = {
     getDocuments,
     createDocument,
@@ -210,5 +256,6 @@ module.exports = {
     createReport,
     getReports,
     getReportById,
-    deleteReport
+    deleteReport,
+    updateReport
 };

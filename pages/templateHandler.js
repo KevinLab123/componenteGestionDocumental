@@ -1563,3 +1563,102 @@ function renderTemplate(doc) {
     enableTableEditing(footer);
 
 }
+
+// templateHandler.js
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reportId = urlParams.get('reportId'); // Identificador del reporte a editar
+
+    if (reportId) {
+        loadReportToEdit(reportId);
+    }
+});
+
+async function loadReportToEdit(id) {
+    try {
+        const response = await fetch(`http://localhost:3000/reports/${id}`);
+        const data = await response.json();
+        
+        // Normalizamos la respuesta (manejo de array o objeto único)
+        const report = Array.isArray(data) ? data[0] : data;
+
+        if (!report) {
+            console.error("No se encontró el reporte solicitado");
+            return;
+        }
+
+        console.log("Cargando reporte para edición...");
+
+        // Almacenamos el ID en el dataset del body para referencia global
+        document.body.dataset.editingReportId = report.id;
+        document.body.dataset.baseTemplateId = report.baseTemplate;
+
+        // Inyectamos el contenido en los 3 editores específicos
+        if (report.header) {
+            document.getElementById('doc-header').innerHTML = report.header;
+        }
+        if (report.content) {
+            document.getElementById('doc-body').innerHTML = report.content;
+        }
+        if (report.footer) {
+            document.getElementById('doc-footer').innerHTML = report.footer;
+        }
+
+        console.log("Reporte cargado exitosamente en los editores.");
+
+    } catch (error) {
+        console.error("Error al recuperar el reporte:", error);
+    }
+}
+
+async function updateReport() {
+    const id = document.body.dataset.editingReportId;
+    
+    if (!id) {
+        alert("Error: No se encontró el ID del reporte para actualizar.");
+        return; 
+    }
+
+    // Preparamos el objeto con la estructura de la tabla 'reports'
+    const updatedReport = {
+        baseTemplate: parseInt(document.body.dataset.baseTemplateId),
+        consecutive: "ACTUALIZADO", // O el valor que manejes en tu lógica
+        header: document.getElementById('doc-header').innerHTML,
+        content: document.getElementById('doc-body').innerHTML,
+        footer: document.getElementById('doc-footer').innerHTML
+    };
+
+    try {
+        const response = await fetch(`http://localhost:3000/reports/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedReport)
+        });
+
+        if (response.ok) {
+            alert("¡Reporte actualizado correctamente!");
+            // Opcional: Redirigir al dashboard tras guardar
+            // window.location.href = 'reportDashboard.html';
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || "Error en la actualización");
+        }
+    } catch (error) {
+        console.error("Error técnico al actualizar:", error);
+        alert("Error al guardar los cambios en el servidor.");
+    }
+}
+
+function handleSaveAction() {
+    // Detectamos si hay un ID de reporte en el dataset del body
+    const editingId = document.body.dataset.editingReportId;
+
+    if (editingId) {
+        console.log(`Modo Edición: Actualizando reporte con ID ${editingId}`);
+        updateReport(); // Ejecuta la petición PUT que definimos anteriormente
+    } else {
+        console.log("Modo Creación: Registrando nuevo reporte");
+        saveReport(); // Ejecuta tu función original de creación (POST)
+    }
+}

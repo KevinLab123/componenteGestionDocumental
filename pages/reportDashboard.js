@@ -96,7 +96,7 @@ async function confirmDeleteReport() {
             }
             // 2. MOSTRAR MENSAJE DE ÉXITO
             // Opción A: Alert sencillo (funcional)
-            alert(`El reporte con ID ${reportIdToDelete} ha sido eliminado con éxito.`);
+            alert(`El reporte ha sido eliminado con éxito.`);
             // 3. RECARGAR LA TABLA
             reportIdToDelete = null;
             loadReports();
@@ -116,4 +116,14 @@ function setupEventListeners() {
     if (confirmBtn) {
         confirmBtn.addEventListener('click', confirmDeleteReport);
     }
+}
+
+function modifyReport(id) {
+    if (!id) {
+        console.error("No se proporcionó un ID válido para modificar.");
+        return;
+    }
+    // Redirigimos a la página del manejador pasando el ID como parámetro de búsqueda
+    // Usamos 'reportId' para que sea capturado por el script del manejador
+    window.location.href = `templateHandler.html?reportId=${id}`;
 }
