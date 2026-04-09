@@ -247,6 +247,88 @@ const updateReport = async (req, res) => {
     }
 }
 
+const getUsers = async (req, res) => {
+    try {
+        const response = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY id ASC');
+        res.status(200).json(response.rows);
+    } catch (error) {
+        console.error("Error al obtener usuarios:", error);
+        res.status(500).json({ message: "Error al obtener la lista de usuarios" });
+    }
+};
+
+const getUserById = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const response = await pool.query('SELECT id, username, role, created_at FROM users WHERE id = $1', [id]);
+        if (response.rows.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+        res.json(response.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al obtener el usuario' });
+    }
+};
+
+const createUser = async (req, res) => {
+    const { username, password, role } = req.body;
+    try {
+        const response = await pool.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role, created_at',
+            [username, password, role]
+        );
+        res.status(201).json({
+            message: 'Usuario creado exitosamente',
+            body: response.rows[0]
+        });
+    } catch (error) {
+        console.error("Error al crear usuario:", error);
+        if (error.code === '23505') { // Error de duplicado (si username es UNIQUE)
+            return res.status(400).json({ message: `El nombre de usuario ${username} ya existe.` });
+        }
+        res.status(500).json({ message: 'Error en el servidor al crear el usuario' });
+    }
+};
+
+const updateUser = async (req, res) => {
+    const id = req.params.id;
+    const { username, password, role } = req.body;
+    try {
+        const query = `
+            UPDATE users 
+            SET username = $1, 
+                password = $2, 
+                role = $3 
+            WHERE id = $4
+        `;
+        const values = [username, password, role, id];
+        const response = await pool.query(query, values);
+
+        if (response.rowCount === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        res.json({ message: `Usuario ${id} actualizado correctamente` });
+    } catch (error) {
+        console.error("Error en updateUser:", error);
+        res.status(500).json({ error: "Error interno al actualizar usuario" });
+    }
+};
+
+const deleteUser = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const result = await pool.query('DELETE FROM users WHERE id = $1', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        res.status(200).json({ message: `Usuario ${id} eliminado correctamente` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al eliminar el usuario" });
+    }
+};
+
 module.exports = {
     getDocuments,
     createDocument,
@@ -257,5 +339,10 @@ module.exports = {
     getReports,
     getReportById,
     deleteReport,
-    updateReport
+    updateReport,
+    getUsers,
+    getUserById,
+    updateUser,
+    deleteUser,
+    createUser
 };
